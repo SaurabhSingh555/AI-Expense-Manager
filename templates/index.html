@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-4 mb-4">
+        <div class="card bg-primary text-white h-100 animate__animated animate__fadeInUp animate__delay-0-2s">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title text-white-50">Total Spending</h5>
+                    <h2 class="card-text display-5 fw-bold">₹{{ "%.2f"|format(total) }}</h2>
+                </div>
+                <p class="card-text mt-auto"><small class="text-white-50">All time</small></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-success text-white h-100 animate__animated animate__fadeInUp animate__delay-0-4s">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title text-white-50">Top Category</h5>
+                    <h2 class="card-text display-5 fw-bold">
+                        {% if categories %}
+                            {{ max(categories, key=categories.get) | title }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </h2>
+                </div>
+                <p class="card-text mt-auto"><small class="text-white-50">Most spent category</small></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-info text-white h-100 animate__animated animate__fadeInUp animate__delay-0-6s">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title text-white-50">Total Expenses</h5>
+                    <h2 class="card-text display-5 fw-bold">{{ expenses|length }}</h2>
+                </div>
+                <p class="card-text mt-auto"><small class="text-white-50">Number of transactions</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card animate__animated animate__fadeInUp animate__delay-0-8s shadow">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i> Add New Expense
+                    </a>
+                    <a href="{{ url_for('monthly_analytics', year_month=datetime.now().strftime('%Y-%m')) }}" 
+                       class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-calendar-month me-2"></i> View This Month
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 animate__animated animate__fadeInUp animate__delay-1s shadow">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Category Breakdown</h5>
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow animate__animated animate__fadeInUp animate__delay-1-4s">
+            <div class="card-header">
+                <h5 class="card-title mb-0 text-primary">Future Spending Projections</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Estimated spending for the upcoming months based on your history.</p>
+                <div class="row">
+                    <div class="col-md-8 mb-3 mb-md-0">
+                        <div class="chart-container">
+                            <canvas id="projectionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Key Projections:</h6>
+                        <ul class="list-group list-group-flush" id="projectionSummary">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Next Month: <span class="fw-bold text-danger" id="nextMonthProjection">Loading...</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Next 3 Months Avg: <span class="fw-bold text-danger" id="threeMonthProjection">Loading...</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Estimated Annual: <span class="fw-bold text-danger" id="annualProjection">Loading...</span>
+                            </li>
+                        </ul>
+                        <div class="alert alert-info mt-3 small" role="alert">
+                            Projections are estimates. Actual spending may vary.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card shadow animate__animated animate__fadeInUp animate__delay-1-2s">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Expenses</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr>
+                                <td>{{ expense['date'] }}</td>
+                                <td>{{ expense['description'] }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 
+                                        'primary' if expense['category'] == 'Food' else
+                                        'success' if expense['category'] == 'Transport' else
+                                        'info' if expense['category'] == 'Entertainment' else
+                                        'warning' if expense['category'] == 'Utilities' else
+                                        'danger' if expense['category'] == 'Rent' else
+                                        'light-purple' if expense['category'] == 'Shopping' else
+                                        'light-teal' if expense['category'] == 'Education' else
+                                        'light-blue' if expense['category'] == 'Healthcare' else
+                                        'light-green' if expense['category'] == 'Groceries' else
+                                        'light-yellow' if expense['category'] == 'Personal Care' else
+                                        'secondary' 
+                                    }}">
+                                        {{ expense['category'] | title }}
+                                    </span>
+                                </td>
+                                <td class="text-danger text-end">-${{ "%.2f"|format(expense['amount']) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <p class="text-muted mb-2">No expenses yet. Start tracking your spending!</p> 
+                                    <a href="{{ url_for('add_expense') }}" class="btn btn-sm btn-outline-primary">Add your first expense</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if expenses|length > 0 %}
+            <div class="card-footer text-center bg-white py-3">
+                <a href="#" class="btn btn-sm btn-light text-primary">View All Expenses <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Category Pie Chart (Existing code)
+    const categoryData = {
+        labels: {{ categories.keys()|list|tojson }},
+        datasets: [{
+            data: {{ categories.values()|list|tojson }},
+            backgroundColor: [
+                '#6C63FF',   // --primary-color
+                '#00D2D3',   // --secondary-color
+                '#1a73e8',   // --info-color
+                '#FFC107',   // --warning-color
+                '#DC3545',   // --danger-color
+                '#B2A4FF',   // --light-purple
+                '#9FE8E8',   // --light-teal
+                '#A2D2FF',   // --light-blue
+                '#D4EDDA',   // --light-green
+                '#F8D7DA',   // --light-red
+                '#FFF3CD',   // --light-yellow
+                '#6f42c1',   // --deep-purple (from new CSS vars)
+                '#28a745',   // --dark-green (from new CSS vars)
+                '#fd7e14',   // --bright-orange (from new CSS vars)
+                '#E9ECEF'    // --light-gray (for 'Other' if needed)
+            ],
+            hoverOffset: 8
+        }]
+    };
+    
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: categoryData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            family: 'Poppins',
+                            size: 14
+                        },
+                        color: '#343A40'
+                    }
+                },
+                tooltip: {
+                    bodyFont: {
+                        family: 'Poppins'
+                    },
+                    titleFont: {
+                        family: 'Poppins',
+                        weight: 'bold'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += '₹' + context.parsed.toFixed(2);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // NEW FEATURE: Future Spending Projections Chart and Summary
+    const fetchProjections = async () => {
+        try {
+            // IMPORTANT: Replace '/api/spending_projections' with your actual Flask/backend endpoint
+            // This endpoint should return JSON data with 'chart_data' (labels, values) and 'summary' (next_month, three_month_avg, annual_estimate)
+            const response = await fetch('/api/spending_projections'); 
+            if (!response.ok) {
+                throw new Error('Failed to fetch spending projections');
+            }
+            const data = await response.json();
+
+            // Chart Data
+            const projectionLabels = data.chart_data.labels;
+            const projectionValues = data.chart_data.values;
+
+            const projectionCtx = document.getElementById('projectionChart').getContext('2d');
+            new Chart(projectionCtx, {
+                type: 'line',
+                data: {
+                    labels: projectionLabels,
+                    datasets: [{
+                        label: 'Projected Spending',
+                        data: projectionValues,
+                        borderColor: '#6C63FF', // Primary color
+                        backgroundColor: 'rgba(108, 99, 255, 0.1)', // Light primary color
+                        fill: true,
+                        tension: 0.4, // Smooth line
+                        pointBackgroundColor: '#6C63FF',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '₹' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (₹)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Summary Data
+            document.getElementById('nextMonthProjection').textContent = `₹${data.summary.next_month.toFixed(2)}`;
+            document.getElementById('threeMonthProjection').textContent = `₹${data.summary.three_month_avg.toFixed(2)}`;
+            document.getElementById('annualProjection').textContent = `₹${data.summary.annual_estimate.toFixed(2)}`;
+
+        } catch (error) {
+            console.error("Error loading spending projections:", error);
+            // Display an error message to the user if the fetch fails
+            document.getElementById('nextMonthProjection').textContent = 'N/A';
+            document.getElementById('threeMonthProjection').textContent = 'N/A';
+            document.getElementById('annualProjection').textContent = 'N/A';
+            document.getElementById('projectionSummary').innerHTML += `
+                <li class="list-group-item text-danger small">
+                    <i class="bi bi-exclamation-triangle me-2"></i> Failed to load projections.
+                </li>
+            `;
+        }
+    };
+
+    // Call the function to fetch and display projections when the page loads
+    fetchProjections();
+
+</script>
+{% endblock %}

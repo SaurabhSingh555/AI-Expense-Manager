@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6"> {# Adjusted column size for a more centered, less wide form on larger screens #}
+        <div class="card animate__animated animate__fadeInUp shadow"> {# Added shadow and animation #}
+            <div class="card-header"> {# bg-white is default now, removed #}
+                <h4 class="card-title mb-0 text-primary">Add New Expense</h4> {# Apply primary color to title #}
+                <p class="text-muted small mb-0">Record your daily spending effortlessly.</p> {# Added a descriptive tagline #}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_expense') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label fw-bold">Amount <span class="text-danger">*</span></label> {# Added fw-bold and required indicator #}
+                            <div class="input-group input-group-lg"> {# Made input group larger #}
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required placeholder="e.g., 500.00"> {# Added placeholder #}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="date" class="form-label fw-bold">Date <span class="text-danger">*</span></label> {# Added fw-bold and required indicator #}
+                           <input type="date" class="form-control form-control-lg" id="date" name="date" value="{{ current_date }}" required> {# Made date input larger #}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-bold">Description <span class="text-danger">*</span></label> {# Added fw-bold and required indicator #}
+                        <input type="text" class="form-control form-control-lg" id="description" name="description" required placeholder="e.g., Coffee at Starbucks"> {# Made input larger and added placeholder #}
+                        <div class="form-text text-muted">A brief note about your expense.</div> {# Added helper text #}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label fw-bold">Category <span class="text-danger">*</span></label> {# Added fw-bold and required indicator #}
+                            <select class="form-select form-select-lg" id="category" name="category" required> {# Made select larger #}
+                                <option value="" disabled selected>Select a category</option> {# Disabled and selected placeholder #}
+                                <option value="food">Food</option>
+                                <option value="transport">Transport</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="rent">Rent</option>
+                                <option value="rent">Mobile Recharge</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="education">Education</option> {# Added new category #}
+                                <option value="healthcare">Healthcare</option> {# Added new category #}
+                                <option value="groceries">Groceries</option> {# Added new category #}
+                                <option value="personal_care">Personal Care</option> {# Added new category #}
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_method" class="form-label fw-bold">Payment Method</label> {# Added fw-bold #}
+                            <select class="form-select form-select-lg" id="payment_method" name="payment_method"> {# Made select larger #}
+                                <option value="cash">Cash</option>
+                                <option value="credit_card">Online UPI</option>
+                                <option value="debit_card">Debit Card</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="digital_wallet">Digital Wallet</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid mt-4"> {# Removed d-md-flex justify-content-md-end to make button full width on small screens and grid on larger #}
+                        <button type="submit" class="btn btn-primary btn-lg"> {# Larger button #}
+                            <i class="bi bi-save me-2"></i> Save Expense
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set current date on load
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months start at 0!
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    });
+
+    // Auto-categorize based on description
+    document.getElementById('description').addEventListener('blur', function() {
+        const description = this.value.trim();
+        if (description) {
+            // Display a temporary loading state or spinner if desired here
+            // e.g., document.getElementById('category').classList.add('loading-state');
+
+            fetch("{{ url_for('predict_category_route') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ description: description })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.category) {
+                    // Normalize the predicted category to match your option values (e.g., 'Food' to 'food')
+                    const normalizedCategory = data.category.toLowerCase().replace(/\s/g, '_');
+                    const categorySelect = document.getElementById('category');
+                    // Check if the predicted category exists in the dropdown
+                    if (Array.from(categorySelect.options).some(option => option.value === normalizedCategory)) {
+                        categorySelect.value = normalizedCategory;
+                    } else {
+                        // Optionally, set to 'other' or log a warning if category is not found
+                        console.warn(`Predicted category '${data.category}' not found in dropdown. Setting to 'other'.`);
+                        categorySelect.value = 'other'; 
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching category prediction:', error);
+                // Optionally, show a user-friendly error message
+            })
+            // .finally(() => {
+            //     // Remove loading state here
+            //     // e.g., document.getElementById('category').classList.remove('loading-state');
+            // });
+        }
+    });
+</script>
+{% endblock %}

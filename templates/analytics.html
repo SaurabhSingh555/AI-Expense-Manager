@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Spending Analytics</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Monthly Spending</h5>
+                        <canvas id="monthlyChart" height="300"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Category Breakdown</h5>
+                        <canvas id="categoryChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{# Add this near the top of your existing analytics.html #}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Monthly Views</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-center">
+                    <a href="{{ url_for('monthly_analytics', year_month=datetime.now().strftime('%Y-%m')) }}" 
+                       class="btn btn-primary">
+                        View Current Month
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Rest of your existing analytics.html content #}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Detailed Breakdown</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="barChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Monthly Spending Line Chart
+    const monthlyData = JSON.parse('{{ monthly_data|safe }}');
+    const monthlyLabels = Object.keys(monthlyData);
+    const monthlyValues = Object.values(monthlyData);
+    
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Monthly Spending',
+                data: monthlyValues,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Pie Chart
+    const categoryData = JSON.parse('{{ category_data|safe }}');
+    const categoryLabels = Object.keys(categoryData);
+    const categoryValues = Object.values(categoryData);
+    
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: [
+                    '#0d6efd', '#198754', '#0dcaf0', '#ffc107', '#fd7e14', '#dc3545'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+    
+    // Category Bar Chart
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                label: 'Spending by Category',
+                data: categoryValues,
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

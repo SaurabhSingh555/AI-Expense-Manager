@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SmartExpense Pro - AI-powered expense tracking with beautiful analytics and financial insights">
+    <title>SmartExpense Pro | {% block title %}{% endblock %}</title>
+    
+    <!-- Preload important resources -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" as="font" crossorigin>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body class="bg-light">
+    <!-- Loading Animation -->
+    <div class="page-loader">
+        <div class="loader-spinner">
+            <div class="loader-icon">
+                <i class="bi bi-coin"></i>
+            </div>
+            <p class="loader-text">SmartExpense Pro</p>
+        </div>
+    </div>
+
+    <!-- Gradient Header with Tagline -->
+    <header class="bg-gradient-primary py-4 mb-4 shadow-sm">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    
+                    <div>
+                        <h1 class="text-white mb-0 animate__animated animate__fadeIn">SmartExpense Pro</h1>
+                        <p class="text-white-50 mb-0 small animate__animated animate__fadeIn animate__delay-1s">
+                            AI-Powered Financial Intelligence
+                        </p>
+                    </div>
+                </div>
+                <div class="text-white text-end animate__animated animate__fadeIn">
+                    <div class="fs-5" id="current-date"></div>
+                    <div class="small">Track smarter, save better</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation with Descriptions -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm sticky-top">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown dropdown-hover">
+                        <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-dark p-3">
+                            <h6 class="dropdown-header">Financial Overview</h6>
+                            <p class="small text-muted mb-0">Your complete spending snapshot with intelligent insights</p>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown dropdown-hover">
+                        <a class="nav-link {% if request.path == url_for('add_expense') %}active{% endif %}" href="{{ url_for('add_expense') }}">
+                            <i class="bi bi-plus-circle me-1"></i> Add Expense
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-dark p-3">
+                            <h6 class="dropdown-header">Expense Tracking</h6>
+                            <p class="small text-muted mb-0">AI-powered categorization for effortless logging</p>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown dropdown-hover">
+                        <a class="nav-link {% if request.path == url_for('analytics') %}active{% endif %}" href="{{ url_for('analytics') }}">
+                            <i class="bi bi-graph-up me-1"></i> Analytics
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-dark p-3">
+                            <h6 class="dropdown-header">Data Visualization</h6>
+                            <p class="small text-muted mb-0">Beautiful charts to understand your spending patterns</p>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown dropdown-hover">
+                        <a class="nav-link {% if 'monthly_analytics' in request.path %}active{% endif %}" 
+                           href="{{ url_for('monthly_analytics', year_month=datetime.now().strftime('%Y-%m')) }}">
+                            <i class="bi bi-calendar-month me-1"></i> Monthly View
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-dark p-3">
+                            <h6 class="dropdown-header">Monthly Analysis</h6>
+                            <p class="small text-muted mb-0">Track your budget and spending trends by month</p>
+                        </div>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <div class="notification-bell me-3 animate__animated animate__pulse animate__infinite" id="notification-bell">
+                        <i class="bi bi-bell fs-5 text-white"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="dropdown">
+                        <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown">
+                          
+                            <span>My Account</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                            <li><h6 class="dropdown-header">Welcome back!</h6></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i> Sign out</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content with Animated Entrance -->
+    <main class="container mb-5 animate__animated animate__fadeIn animate__fast">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Professional Footer with Useful Links -->
+    <footer class="bg-dark text-white py-5 mt-auto">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="footer-brand mb-3">
+                        
+                        <span class="fs-4 fw-bold">SmartExpense Pro</span>
+                    </div>
+                    <p class="text-muted">
+                        The intelligent expense tracking solution that helps individuals and businesses 
+                        gain financial clarity through AI-powered insights.
+                    </p>
+                    <div class="social-links mt-3">
+                        <a href="#" class="text-white me-2"><i class="bi bi-facebook fs-5"></i></a>
+                        <a href="#" class="text-white me-2"><i class="bi bi-twitter fs-5"></i></a>
+                        <a href="#" class="text-white me-2"><i class="bi bi-linkedin fs-5"></i></a>
+                        <a href="#" class="text-white"><i class="bi bi-instagram fs-5"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h5 class="text-primary mb-3">Features</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">AI Categorization</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Budget Tracking</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Financial Reports</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Multi-Device Sync</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Receipt Scanning</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h5 class="text-primary mb-3">Resources</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Help Center</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Tutorials</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Blog</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none">Webinars</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">API Docs</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-4">
+                    <h5 class="text-primary mb-3">Newsletter</h5>
+                    <p class="text-muted">Subscribe to receive financial tips and product updates.</p>
+                    <form class="mb-3">
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="Your email">
+                            <button class="btn btn-primary" type="button">Subscribe</button>
+                        </div>
+                    </form>
+                   
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="small mb-3 mb-md-0">© 2025 SmartExpense Pro. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="small mb-0">
+                        <a href="#" class="text-white text-decoration-none me-3">Privacy Policy</a>
+                        <a href="#" class="text-white text-decoration-none me-3">Terms of Service</a>
+                        <a href="#" class="text-white text-decoration-none">Contact Us</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <a href="#" class="back-to-top animate__animated animate__fadeInUp" id="backToTop">
+        <i class="bi bi-arrow-up"></i>
+    </a>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
